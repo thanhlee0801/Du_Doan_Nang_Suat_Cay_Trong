@@ -2,18 +2,32 @@ import streamlit as st
 import streamlit.components.v1 as components
 import os
 
-# Lấy đường dẫn tuyệt đối đến thư mục đang chứa file app.py
-current_dir = os.path.dirname(os.path.abspath(__file__))
+# 1. Cấu hình giao diện Streamlit (ẩn menu và padding thừa)
+st.set_page_config(page_title="Dự Đoán Năng Suất", layout="wide")
 
-# Tạo đường dẫn đến file index.html bên trong thư mục frontend
-frontend_path = os.path.join(current_dir, "frontend", "index.html")
+# 2. Xác định đường dẫn tuyệt đối
+# Streamlit Cloud thường mount code tại /mount/src/tên-repo/
+base_path = os.path.dirname(os.path.abspath(__file__))
 
-# Kiểm tra xem file có thực sự tồn tại không trước khi mở
-if os.path.exists(frontend_path):
-    with open(frontend_path, "r", encoding="utf-8") as f:
+# Đường dẫn cụ thể dựa trên cấu trúc bạn cung cấp
+frontend_dir = os.path.join(base_path, "Du_Doan_Nang_Suat_Cay_Trong-main", "frontend")
+html_path = os.path.join(frontend_dir, "index.html")
+
+# 3. Kiểm tra và hiển thị
+if os.path.exists(html_path):
+    with open(html_path, "r", encoding="utf-8") as f:
         html_content = f.read()
-    components.html(html_content, height=800, scrolling=True)
+    
+    # Hiển thị HTML
+    # Bạn có thể tăng height lên 1000 hoặc hơn tùy độ dài trang web của bạn
+    components.html(html_content, height=1000, scrolling=True)
 else:
-    st.error(f"Không tìm thấy file tại: {frontend_path}")
-    # In ra danh sách file để bạn dễ debug
-    st.write("Danh sách file hiện có:", os.listdir(current_dir))
+    st.error("❌ Không tìm thấy file index.html!")
+    st.info(f"Đường dẫn đang thử: {html_path}")
+    
+    # Debug: Liệt kê các thư mục đang có để bạn thấy cấu trúc thực tế
+    st.write("Cấu trúc thư mục hiện tại:")
+    for root, dirs, files in os.walk(base_path):
+        level = root.replace(base_path, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        st.code(f"{indent}{os.path.basename(root)}/")
