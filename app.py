@@ -5,8 +5,10 @@ import joblib
 import os
 import json
 
-# --- 1. CẤU HÌNH ---
+# --- 1. CẤU HÌNH TRANG ---
 st.set_page_config(page_title="AgroPredict AI", layout="wide")
+
+# Đường dẫn tới thư mục model (Đảm bảo đúng tên folder trong GitHub)
 MODEL_DIR = "Du_Doan_Nang_Suat_Cay_Trong-main/backend/model/"
 
 @st.cache_resource
@@ -20,7 +22,7 @@ def load_models():
 models = load_models()
 
 # --- 2. GIAO DIỆN NHẬP LIỆU (HTML) ---
-# Dùng nháy đơn 3 lần (''') để bao bọc HTML có chứa nháy kép (")
+# Sử dụng dấu nháy đơn 3 lần (''') để bao bọc HTML chứa dấu nháy kép (")
 html_form = '''
 <!DOCTYPE html>
 <html>
@@ -29,18 +31,20 @@ html_form = '''
     <style>
         body { background-color: #f0fdf4; font-family: sans-serif; padding: 10px; }
         .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input { border: 1px solid #ddd; border-radius: 8px; padding: 8px; width: 100%; margin-bottom: 10px; }
+        label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; }
+        input { border: 1px solid #ddd; border-radius: 8px; padding: 8px; width: 100%; margin-bottom: 10px; outline: none; }
+        input:focus { border-color: #10b981; }
         button { background: #10b981; color: white; width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="max-w-md mx-auto card">
-        <h3 style="text-align:center; color:#065f46;">Thông số nông nghiệp</h3>
-        <input id="n" type="number" placeholder="N" value="14">
-        <input id="p" type="number" placeholder="P" value="52">
-        <input id="k" type="number" placeholder="K" value="76">
-        <input id="temp" type="number" placeholder="Temp" value="28">
-        <input id="rain" type="number" placeholder="Rain" value="250">
+        <h3 style="text-align:center; color:#065f46; margin-bottom: 15px;">Dự Đoán Năng Suất</h3>
+        <label>Nitơ (N)</label> <input id="n" type="number" value="14">
+        <label>Phốt pho (P)</label> <input id="p" type="number" value="52">
+        <label>Kali (K)</label> <input id="k" type="number" value="76">
+        <label>Nhiệt độ (°C)</label> <input id="temp" type="number" value="28">
+        <label>Lượng mưa (mm)</label> <input id="rain" type="number" value="250">
         <button onclick="send()">DỰ ĐOÁN NGAY</button>
     </div>
     <script>
@@ -59,15 +63,15 @@ html_form = '''
 </html>
 '''
 
-data_input = components.html(html_form, height=450)
+data_input = components.html(html_form, height=520)
 
 # --- 3. XỬ LÝ DỰ ĐOÁN ---
 if data_input:
     try:
-        # Giải mã JSON
+        # Giải mã JSON an toàn
         d = json.loads(data_input)
         
-        # Tạo DataFrame - ĐẢM BẢO TÊN CỘT KHỚP VỚI MODEL CỦA BẠN
+        # Tạo DataFrame (Lưu ý: Tên cột N, P, K, temperature, rainfall phải khớp với Model)
         df = pd.DataFrame([[
             float(d['n']), float(d['p']), float(d['k']), 
             float(d['temp']), float(d['rain'])
@@ -76,19 +80,21 @@ if data_input:
         if 'rf' in models:
             res = models['rf'].predict(df)[0]
             
-            # CÁCH FIX LỖI SYNTAX: Dùng hàm .format() thay vì f-string trực tiếp trong markdown
-            display_html = '''
+            # Sử dụng .format() để chèn biến 'res' vào chuỗi HTML 
+            # Cách này giúp tránh lỗi SyntaxError do dùng f-string với ngoặc nhọn
+            ket_qua_html = '''
             <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); 
                         padding: 30px; border-radius: 20px; color: white; text-align: center; margin-top: 20px;">
-                <p style="color: #10b981; font-weight: bold;">KẾT QUẢ PHÂN TÍCH</p>
-                <h2 style="font-size: 35px; margin: 10px 0;">{:.3f} <span style="font-size: 15px;">tấn/ha</span></h2>
+                <p style="color: #10b981; font-weight: bold; font-size: 12px; margin: 0;">KẾT QUẢ DỰ ĐOÁN</p>
+                <h2 style="font-size: 38px; margin: 10px 0;">{:.3f} <span style="font-size: 16px; color: #94a3b8;">tấn/ha</span></h2>
+                <p style="font-size: 11px; color: #64748b;">Dựa trên phân tích từ mô hình Random Forest</p>
             </div>
             '''.format(res)
             
-            st.markdown(display_html, unsafe_allow_html=True)
+            st.markdown(ket_qua_html, unsafe_allow_html=True)
             st.balloons()
         else:
-            st.error("Không tìm thấy model (.pkl)")
+            st.error("Không tìm thấy model (.pkl) trong thư mục backend/model/")
 
     except Exception as e:
         st.error(f"Lỗi: {e}")
