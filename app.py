@@ -111,10 +111,10 @@ html_code = """
             temp: parseFloat(document.getElementById('temp').value) || 0,
             rain: parseFloat(document.getElementById('rain').value) || 0
         };
-        // Gửi dạng chuỗi JSON để an toàn tuyệt đối
+        // Gửi thông điệp
         window.parent.postMessage({
             type: 'streamlit:setComponentValue',
-            value: JSON.stringify(payload)
+            value: payload
         }, '*');
     }
 </script>
@@ -128,52 +128,50 @@ data_input = components.html(html_code, height=520)
 # --- 3. XỬ LÝ DỰ ĐOÁN ---
 if data_input:
     try:
-        # Giải mã dữ liệu từ JSON (để tránh Streamlit hiểu nhầm đối tượng)
-        import json
-        if isinstance(data_input, str):
-            input_dict = json.loads(data_input)
-        else:
-            # Ép kiểu thủ công về dict thuần túy
-            input_dict = dict(data_input) 
+        # Bước 1: Chuyển dữ liệu sang chuỗi JSON rồi mới load lại để "tẩy sạch" định dạng Streamlit
+        raw_str = str(data_input)
+        # Thay thế dấu nháy đơn thành nháy kép để đúng định dạng JSON nếu cần
+        clean_json = raw_str.replace("'", '"')
+        
+        try:
+            input_dict = json.loads(clean_json)
+        except:
+            # Nếu không load được JSON, ép kiểu dict thủ công
+            input_dict = dict(data_input)
 
-        # KHÔNG DÙNG .get() - Dùng cách truy cập trực tiếp bằng ngoặc vuông []
-        # Chúng ta dùng try/except nhỏ để gán giá trị mặc định nếu thiếu phím
-        try: n = float(input_dict['n'])
-        except: n = 0.0
-            
-        try: p = float(input_dict['p'])
-        except: p = 0.0
-            
-        try: k = float(input_dict['k'])
-        except: k = 0.0
-            
-        try: t = float(input_dict['temp'])
-        except: t = 25.0
-            
-        try: r = float(input_dict['rain'])
-        except: r = 100.0
+        # Bước 2: Truy cập dữ liệu bằng ngoặc vuông [], KHÔNG dùng .get() hay .keys()
+        # Cách này giúp Streamlit không thể bắt lỗi "command"
+        val_n = float(input_dict['n']) if 'n' in input_dict else 0.0
+        val_p = float(input_dict['p']) if 'p' in input_dict else 0.0
+        val_k = float(input_dict['k']) if 'k' in input_dict else 0.0
+        val_t = float(input_dict['temp']) if 'temp' in input_dict else 25.0
+        val_r = float(input_dict['rain']) if 'rain' in input_dict else 100.0
 
-        # Tạo DataFrame (Lưu ý: Tên cột N, P, K... phải khớp với Model của bạn)
+        # Bước 3: Tạo DataFrame (Tên cột phải khớp 100% với Model của bạn)
         df = pd.DataFrame([{
-            'N': n, 'P': p, 'K': k, 
-            'temperature': t, 'rainfall': r
+            'N': val_n, 
+            'P': val_p, 
+            'K': val_k, 
+            'temperature': val_t, 
+            'rainfall': val_r
         }])
 
         if models:
-            # Thực hiện dự đoán
+            # Lấy kết quả từ mô hình Random Forest (rf)
             res_rf = models['rf'].predict(df)[0]
             
-            # Hiển thị kết quả (Giao diện tối màu)
+            # Bước 4: Hiển thị kết quả bằng HTML tối màu
             st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 30px; border-radius: 25px; color: white; text-align: center; margin-top: 20px;">
-                <p style="color: #10b981; font-size: 12px; font-weight: bold; text-transform: uppercase;">Dự đoán thành công</p>
-                <h2 style="font-size: 32px; margin: 10px 0;">{res_rf:.3f} <span style="font-size: 14px; color: #94a3b8;">tấn/ha</span></h2>
-                <p style="font-size: 10px; color: #64748b;">Kết quả dựa trên mô hình Random Forest</p>
+            <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 35px; border-radius: 24px; color: white; text-align: center; margin-top: 20px; border: 1px solid #10b981;">
+                <p style="color: #10b981; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Dự đoán thành công</p>
+                <h2 style="font-size: 36px; font-weight: 800; margin: 15px 0;">{res_rf:.3f} <small style="font-size: 14px; color: #94a3b8; font-weight: 400;">tấn/ha</small></h2>
+                <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px auto; width: 50%;"></div>
+                <p style="font-size: 10px; color: #64748b;">Mô hình: Random Forest Regressor</p>
             </div>
             """, unsafe_allow_html=True)
             st.balloons()
         else:
-            st.error("Không tìm thấy tệp model (.pkl)")
+            st.error("⚠️ Không tìm thấy file mô hình trong hệ thống.")
 
     except Exception as e:
-        st.error(f"Lỗi hệ thống: {e}")
+        st.error(f"Lỗi phân tích: {str(e)}")
