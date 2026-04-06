@@ -102,20 +102,23 @@ html_code = """
     </div>
 
     <script>
-        function predict() {
-            const data = {
-                n: parseFloat(document.getElementById('n').value),
-                p: parseFloat(document.getElementById('p').value),
-                k: parseFloat(document.getElementById('k').value),
-                temp: parseFloat(document.getElementById('temp').value),
-                rain: parseFloat(document.getElementById('rain').value)
-            };
-            window.parent.postMessage({
-                type: 'streamlit:setComponentValue',
-                value: data
-            }, '*');
-        }
-    </script>
+    function predict() {
+        // Lấy giá trị và ép kiểu số thực ngay tại đây
+        const payload = {
+            n: parseFloat(document.getElementById('n').value) || 0,
+            p: parseFloat(document.getElementById('p').value) || 0,
+            k: parseFloat(document.getElementById('k').value) || 0,
+            temp: parseFloat(document.getElementById('temp').value) || 25,
+            rain: parseFloat(document.getElementById('rain').value) || 100
+        };
+
+        // Gửi thông điệp chuẩn cho Streamlit
+        window.parent.postMessage({
+            type: 'streamlit:setComponentValue',
+            value: payload
+        }, '*');
+    }
+</script>
 </body>
 </html>
 """
@@ -125,63 +128,42 @@ data_input = components.html(html_code, height=520)
 
 # --- 3. XỬ LÝ DỰ ĐOÁN & HIỂN THỊ KẾT QUẢ ---
 
-# Bước 1: Kiểm tra xem data_input có dữ liệu từ HTML gửi sang không
-if data_input is not None:
-    # QUAN TRỌNG: Đảm bảo data_input là một Dictionary của Python
-    if isinstance(data_input, dict):
-        try:
-            # Lấy giá trị an toàn từ Dictionary
-            # Nếu không tìm thấy phím 'n', nó sẽ lấy giá trị mặc định là 0
-            n = data_input.get('n', 0)
-            p = data_input.get('p', 0)
-            k = data_input.get('k', 0)
-            t = data_input.get('temp', 0)
-            r = data_input.get('rain', 0)
+# Kiểm tra dữ liệu thô từ component
+if data_input:
+    try:
+        # Ép kiểu dữ liệu về dict nếu nó đang ở dạng proxy hoặc string
+        if not isinstance(data_input, dict):
+            import json
+            # Thử convert nếu dữ liệu bị gửi về dạng chuỗi JSON
+            input_dict = dict(data_input) 
+        else:
+            input_dict = data_input
 
-            # Bước 2: Tạo DataFrame (Tên cột PHẢI khớp với lúc bạn Train Model)
-            # Ví dụ: Nếu lúc train bạn đặt tên là 'Nhiet_Do' thì phải sửa 'temperature' thành 'Nhiet_Do'
-            df = pd.DataFrame([{
-                'N': n,
-                'P': p,
-                'K': k,
-                'temperature': t,
-                'rainfall': r
-            }])
+        # Trích xuất dữ liệu an toàn
+        val_n = float(input_dict.get('n', 0))
+        val_p = float(input_dict.get('p', 0))
+        val_k = float(input_dict.get('k', 0))
+        val_t = float(input_dict.get('temp', 0))
+        val_r = float(input_dict.get('rain', 0))
 
-            # Bước 3: Kiểm tra Model và Dự đoán
-            if models:
-                res_rf = models['rf'].predict(df)[0] if 'rf' in models else 0
-                res_xgb = models['xgb'].predict(df)[0] if 'xgb' in models else 0
-                res_lgbm = models['lgbm'].predict(df)[0] if 'lgbm' in models else 0
+        # Tạo DataFrame (Lưu ý: Tên cột phải khớp với Model của bạn)
+        df = pd.DataFrame([{
+            'N': val_n,
+            'P': val_p,
+            'K': val_k,
+            'temperature': val_t,
+            'rainfall': val_r
+        }])
 
-                # Bước 4: Hiển thị giao diện kết quả (Card tối màu)
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 40px; border-radius: 32px; color: white; text-align: center; margin-top: 20px;">
-                    <p style="color: #10b981; font-size: 10px; font-weight: 900; text-transform: uppercase;">Phân tích thành công</p>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px;">
-                        <div>
-                            <p style="font-size: 9px; color: #94a3b8;">RANDOM FOREST</p>
-                            <p style="font-size: 20px; font-weight: bold;">{res_rf:.3f} <small style="font-size: 10px;">tấn/ha</small></p>
-                        </div>
-                        <div>
-                            <p style="font-size: 9px; color: #10b981;">XGBOOST</p>
-                            <p style="font-size: 20px; font-weight: bold;">{res_xgb:.3f} <small style="font-size: 10px;">tấn/ha</small></p>
-                        </div>
-                        <div>
-                            <p style="font-size: 9px; color: #94a3b8;">LIGHTGBM</p>
-                            <p style="font-size: 20px; font-weight: bold;">{res_lgbm:.3f} <small style="font-size: 10px;">tấn/ha</small></p>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                st.balloons()
-            else:
-                st.error("Không tìm thấy các file model (.pkl).")
-        
-        except Exception as e:
-            st.error(f"Lỗi logic dự đoán: {e}")
-    else:
-        st.warning("Dữ liệu từ giao diện gửi về không đúng định dạng.")
-else:
-    # Trạng thái ban đầu khi chưa nhấn nút
-    st.info("💡 Mẹo: Nhập đầy đủ thông số và nhấn 'DỰ ĐOÁN NGAY' để hệ thống tính toán.")
+        # Thực hiện dự đoán
+        if models:
+            # Hiển thị vùng kết quả
+            st.markdown("### 📊 Kết quả dự đoán")
+            res_rf = models['rf'].predict(df)[0]
+            st.success(f"Năng suất dự kiến: {res_rf:.3f} tấn/ha")
+        else:
+            st.error("Không tìm thấy model (.pkl)")
+
+    except Exception as e:
+        st.error(f"Lỗi xử lý dữ liệu: {e}")
+        st.write("Dữ liệu thô nhận được:", data_input) # Dòng này để debug
