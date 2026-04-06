@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 import joblib
 import os
+import json # Thêm dòng này ở đầu file app.py
 
 # --- 1. CẤU HÌNH TRANG ---
 st.set_page_config(page_title="AgroPredict AI", layout="wide")
@@ -101,21 +102,20 @@ html_code = """
         </div>
     </div>
 
-    <script>
+<script>
     function predict() {
-        // Lấy giá trị và ép kiểu số thực ngay tại đây
         const payload = {
             n: parseFloat(document.getElementById('n').value) || 0,
             p: parseFloat(document.getElementById('p').value) || 0,
             k: parseFloat(document.getElementById('k').value) || 0,
-            temp: parseFloat(document.getElementById('temp').value) || 25,
-            rain: parseFloat(document.getElementById('rain').value) || 100
+            temp: parseFloat(document.getElementById('temp').value) || 0,
+            rain: parseFloat(document.getElementById('rain').value) || 0
         };
 
-        // Gửi thông điệp chuẩn cho Streamlit
+        // Chuyển đối tượng thành chuỗi JSON để Python dễ đọc
         window.parent.postMessage({
             type: 'streamlit:setComponentValue',
-            value: payload
+            value: JSON.stringify(payload) 
         }, '*');
     }
 </script>
@@ -126,44 +126,38 @@ html_code = """
 # Hiển thị giao diện và nhận giá trị
 data_input = components.html(html_code, height=520)
 
-# --- 3. XỬ LÝ DỰ ĐOÁN & HIỂN THỊ KẾT QUẢ ---
-
-# Kiểm tra dữ liệu thô từ component
+# --- 3. XỬ LÝ DỰ ĐOÁN ---
 if data_input:
     try:
-        # Ép kiểu dữ liệu về dict nếu nó đang ở dạng proxy hoặc string
-        if not isinstance(data_input, dict):
-            import json
-            # Thử convert nếu dữ liệu bị gửi về dạng chuỗi JSON
-            input_dict = dict(data_input) 
+        # Giải mã chuỗi JSON từ giao diện gửi về
+        # Nếu data_input đã là dict thì bỏ qua, nếu là string thì load
+        if isinstance(data_input, str):
+            input_dict = json.loads(data_input)
         else:
             input_dict = data_input
 
-        # Trích xuất dữ liệu an toàn
-        val_n = float(input_dict.get('n', 0))
-        val_p = float(input_dict.get('p', 0))
-        val_k = float(input_dict.get('k', 0))
-        val_t = float(input_dict.get('temp', 0))
-        val_r = float(input_dict.get('rain', 0))
+        # Lấy giá trị an toàn
+        n = float(input_dict.get('n', 0))
+        p = float(input_dict.get('p', 0))
+        k = float(input_dict.get('k', 0))
+        t = float(input_dict.get('temp', 0))
+        r = float(input_dict.get('rain', 0))
 
-        # Tạo DataFrame (Lưu ý: Tên cột phải khớp với Model của bạn)
+        # Tạo DataFrame (Tên cột phải khớp với Model của bạn)
         df = pd.DataFrame([{
-            'N': val_n,
-            'P': val_p,
-            'K': val_k,
-            'temperature': val_t,
-            'rainfall': val_r
+            'N': n, 'P': p, 'K': k, 
+            'temperature': t, 'rainfall': r
         }])
 
-        # Thực hiện dự đoán
         if models:
-            # Hiển thị vùng kết quả
-            st.markdown("### 📊 Kết quả dự đoán")
             res_rf = models['rf'].predict(df)[0]
-            st.success(f"Năng suất dự kiến: {res_rf:.3f} tấn/ha")
-        else:
-            st.error("Không tìm thấy model (.pkl)")
+            # Hiển thị kết quả bằng Markdown cho đẹp
+            st.markdown(f"""
+            <div style="background: #064e3b; color: white; padding: 20px; border-radius: 15px; text-align: center;">
+                <h2 style="margin: 0;">Năng suất dự đoán: {res_rf:.3f} tấn/ha</h2>
+            </div>
+            """, unsafe_allow_html=True)
+            st.balloons()
 
     except Exception as e:
-        st.error(f"Lỗi xử lý dữ liệu: {e}")
-        st.write("Dữ liệu thô nhận được:", data_input) # Dòng này để debug
+        st.error(f"Lỗi phân tích dữ liệu: {e}")
