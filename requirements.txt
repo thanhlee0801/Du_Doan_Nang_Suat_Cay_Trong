@@ -4,3 +4,5 @@ joblib
 scikit-learn
 xgboost
 lightgbm
+numpy
+tensorflow==2.15.0
