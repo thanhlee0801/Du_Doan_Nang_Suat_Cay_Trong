@@ -124,59 +124,64 @@ html_code = """
 data_input = components.html(html_code, height=520)
 
 # --- 3. XỬ LÝ DỰ ĐOÁN & HIỂN THỊ KẾT QUẢ ---
-# Kiểm tra nếu data_input tồn tại (người dùng đã nhấn nút)
+
+# Bước 1: Kiểm tra xem data_input có dữ liệu từ HTML gửi sang không
 if data_input is not None:
-    # Lưu ý: data_input ở đây là kết quả từ JavaScript gửi sang (một dict)
-    try:
-        # Lấy giá trị từ dict, nếu không có thì mặc định là 0
-        val_n = data_input.get('n', 0)
-        val_p = data_input.get('p', 0)
-        val_k = data_input.get('k', 0)
-        val_t = data_input.get('temp', 0)
-        val_r = data_input.get('rain', 0)
+    # QUAN TRỌNG: Đảm bảo data_input là một Dictionary của Python
+    if isinstance(data_input, dict):
+        try:
+            # Lấy giá trị an toàn từ Dictionary
+            # Nếu không tìm thấy phím 'n', nó sẽ lấy giá trị mặc định là 0
+            n = data_input.get('n', 0)
+            p = data_input.get('p', 0)
+            k = data_input.get('k', 0)
+            t = data_input.get('temp', 0)
+            r = data_input.get('rain', 0)
 
-        # Tạo DataFrame để đưa vào Model
-        # QUAN TRỌNG: Tên cột 'N', 'P', 'K'... phải giống hệt lúc bạn Train Model
-        df = pd.DataFrame([{
-            'N': val_n,
-            'P': val_p,
-            'K': val_k,
-            'temperature': val_t,
-            'rainfall': val_r
-        }])
+            # Bước 2: Tạo DataFrame (Tên cột PHẢI khớp với lúc bạn Train Model)
+            # Ví dụ: Nếu lúc train bạn đặt tên là 'Nhiet_Do' thì phải sửa 'temperature' thành 'Nhiet_Do'
+            df = pd.DataFrame([{
+                'N': n,
+                'P': p,
+                'K': k,
+                'temperature': t,
+                'rainfall': r
+            }])
 
-        if not models:
-            st.error("Lỗi: Không tìm thấy các tệp model (.pkl) trong thư mục backend/model/")
-        else:
-            # Thực hiện dự đoán từ các model đã load
-            res_rf = models['rf'].predict(df)[0] if 'rf' in models else 0
-            res_xgb = models['xgb'].predict(df)[0] if 'xgb' in models else 0
-            res_lgbm = models['lgbm'].predict(df)[0] if 'lgbm' in models else 0
+            # Bước 3: Kiểm tra Model và Dự đoán
+            if models:
+                res_rf = models['rf'].predict(df)[0] if 'rf' in models else 0
+                res_xgb = models['xgb'].predict(df)[0] if 'xgb' in models else 0
+                res_lgbm = models['lgbm'].predict(df)[0] if 'lgbm' in models else 0
 
-            # Hiển thị giao diện kết quả tối màu (như ảnh thiết kế)
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 50px; border-radius: 32px; color: white; text-align: center; margin-top: 20px; position: relative;">
-                <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #10b981; font-size: 10px; font-weight: 900; padding: 6px 16px; border-radius: 20px; text-transform: uppercase;">
-                    Phân tích thành công
+                # Bước 4: Hiển thị giao diện kết quả (Card tối màu)
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 40px; border-radius: 32px; color: white; text-align: center; margin-top: 20px;">
+                    <p style="color: #10b981; font-size: 10px; font-weight: 900; text-transform: uppercase;">Phân tích thành công</p>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px;">
+                        <div>
+                            <p style="font-size: 9px; color: #94a3b8;">RANDOM FOREST</p>
+                            <p style="font-size: 20px; font-weight: bold;">{res_rf:.3f} <small style="font-size: 10px;">tấn/ha</small></p>
+                        </div>
+                        <div>
+                            <p style="font-size: 9px; color: #10b981;">XGBOOST</p>
+                            <p style="font-size: 20px; font-weight: bold;">{res_xgb:.3f} <small style="font-size: 10px;">tấn/ha</small></p>
+                        </div>
+                        <div>
+                            <p style="font-size: 9px; color: #94a3b8;">LIGHTGBM</p>
+                            <p style="font-size: 20px; font-weight: bold;">{res_lgbm:.3f} <small style="font-size: 10px;">tấn/ha</small></p>
+                        </div>
+                    </div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; margin-top: 20px;">
-                    <div>
-                        <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">Random Forest</p>
-                        <p style="font-size: 28px; font-weight: 700;">{res_rf:.3f} <span style="font-size: 12px; color: #64748b;">tấn/ha</span></p>
-                    </div>
-                    <div>
-                        <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">XGBoost</p>
-                        <p style="font-size: 28px; font-weight: 700;">{res_xgb:.3f} <span style="font-size: 12px; color: #64748b;">tấn/ha</span></p>
-                    </div>
-                    <div>
-                        <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">LightGBM</p>
-                        <p style="font-size: 28px; font-weight: 700;">{res_lgbm:.3f} <span style="font-size: 12px; color: #64748b;">tấn/ha</span></p>
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.balloons()
-
-    except Exception as e:
-        # Nếu vẫn lỗi, in ra lỗi cụ thể để kiểm tra
-        st.error(f"Lỗi hệ thống: {e}")
+                """, unsafe_allow_html=True)
+                st.balloons()
+            else:
+                st.error("Không tìm thấy các file model (.pkl).")
+        
+        except Exception as e:
+            st.error(f"Lỗi logic dự đoán: {e}")
+    else:
+        st.warning("Dữ liệu từ giao diện gửi về không đúng định dạng.")
+else:
+    # Trạng thái ban đầu khi chưa nhấn nút
+    st.info("💡 Mẹo: Nhập đầy đủ thông số và nhấn 'DỰ ĐOÁN NGAY' để hệ thống tính toán.")
