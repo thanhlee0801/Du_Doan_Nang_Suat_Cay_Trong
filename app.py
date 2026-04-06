@@ -111,11 +111,10 @@ html_code = """
             temp: parseFloat(document.getElementById('temp').value) || 0,
             rain: parseFloat(document.getElementById('rain').value) || 0
         };
-
-        // Chuyển đối tượng thành chuỗi JSON để Python dễ đọc
+        // Gửi dạng chuỗi JSON để an toàn tuyệt đối
         window.parent.postMessage({
             type: 'streamlit:setComponentValue',
-            value: JSON.stringify(payload) 
+            value: JSON.stringify(payload)
         }, '*');
     }
 </script>
@@ -129,35 +128,52 @@ data_input = components.html(html_code, height=520)
 # --- 3. XỬ LÝ DỰ ĐOÁN ---
 if data_input:
     try:
-        # Giải mã chuỗi JSON từ giao diện gửi về
-        # Nếu data_input đã là dict thì bỏ qua, nếu là string thì load
+        # Giải mã dữ liệu từ JSON (để tránh Streamlit hiểu nhầm đối tượng)
+        import json
         if isinstance(data_input, str):
             input_dict = json.loads(data_input)
         else:
-            input_dict = data_input
+            # Ép kiểu thủ công về dict thuần túy
+            input_dict = dict(data_input) 
 
-        # Lấy giá trị an toàn
-        n = float(input_dict.get('n', 0))
-        p = float(input_dict.get('p', 0))
-        k = float(input_dict.get('k', 0))
-        t = float(input_dict.get('temp', 0))
-        r = float(input_dict.get('rain', 0))
+        # KHÔNG DÙNG .get() - Dùng cách truy cập trực tiếp bằng ngoặc vuông []
+        # Chúng ta dùng try/except nhỏ để gán giá trị mặc định nếu thiếu phím
+        try: n = float(input_dict['n'])
+        except: n = 0.0
+            
+        try: p = float(input_dict['p'])
+        except: p = 0.0
+            
+        try: k = float(input_dict['k'])
+        except: k = 0.0
+            
+        try: t = float(input_dict['temp'])
+        except: t = 25.0
+            
+        try: r = float(input_dict['rain'])
+        except: r = 100.0
 
-        # Tạo DataFrame (Tên cột phải khớp với Model của bạn)
+        # Tạo DataFrame (Lưu ý: Tên cột N, P, K... phải khớp với Model của bạn)
         df = pd.DataFrame([{
             'N': n, 'P': p, 'K': k, 
             'temperature': t, 'rainfall': r
         }])
 
         if models:
+            # Thực hiện dự đoán
             res_rf = models['rf'].predict(df)[0]
-            # Hiển thị kết quả bằng Markdown cho đẹp
+            
+            # Hiển thị kết quả (Giao diện tối màu)
             st.markdown(f"""
-            <div style="background: #064e3b; color: white; padding: 20px; border-radius: 15px; text-align: center;">
-                <h2 style="margin: 0;">Năng suất dự đoán: {res_rf:.3f} tấn/ha</h2>
+            <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 30px; border-radius: 25px; color: white; text-align: center; margin-top: 20px;">
+                <p style="color: #10b981; font-size: 12px; font-weight: bold; text-transform: uppercase;">Dự đoán thành công</p>
+                <h2 style="font-size: 32px; margin: 10px 0;">{res_rf:.3f} <span style="font-size: 14px; color: #94a3b8;">tấn/ha</span></h2>
+                <p style="font-size: 10px; color: #64748b;">Kết quả dựa trên mô hình Random Forest</p>
             </div>
             """, unsafe_allow_html=True)
             st.balloons()
+        else:
+            st.error("Không tìm thấy tệp model (.pkl)")
 
     except Exception as e:
-        st.error(f"Lỗi phân tích dữ liệu: {e}")
+        st.error(f"Lỗi hệ thống: {e}")
