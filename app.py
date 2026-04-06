@@ -124,38 +124,51 @@ html_code = """
 data_input = components.html(html_code, height=520)
 
 # --- 3. XỬ LÝ DỰ ĐOÁN & HIỂN THỊ KẾT QUẢ ---
-if data_input:
-    # Chuẩn bị DataFrame (Phải khớp tên cột khi train model của bạn)
-    # Giả sử model của bạn train với tên cột: 'N', 'P', 'K', 'temperature', 'rainfall'
-    df = pd.DataFrame([{
-        'N': data_input['n'],
-        'P': data_input['p'],
-        'K': data_input['k'],
-        'temperature': data_input['temp'],
-        'rainfall': data_input['rain']
-    }])
+# Chỉ thực hiện khi data_input có giá trị (người dùng đã click nút)
+if data_input is not None:
+    try:
+        # Chuẩn bị DataFrame
+        df = pd.DataFrame([{
+            'N': data_input.get('n', 0),
+            'P': data_input.get('p', 0),
+            'K': data_input.get('k', 0),
+            'temperature': data_input.get('temp', 0),
+            'rainfall': data_input.get('rain', 0)
+        }])
 
-    # Hiển thị vùng kết quả (Giao diện tối màu như ảnh)
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 50px; border-radius: 32px; color: white; text-align: center; margin-top: 20px; position: relative;">
-        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #10b981; font-size: 10px; font-weight: 900; padding: 6px 16px; border-radius: 20px; text-transform: uppercase;">
-            Phân tích thành công
-        </div>
-        <h3 style="color: #94a3b8; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 30px;">Năng suất ước tính từ các mô hình</h3>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
-            <div>
-                <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">Random Forest</p>
-                <p style="font-size: 28px; font-weight: 700;">{models['rf'].predict(df)[0] if 'rf' in models else 0:.3f} <small style="font-size: 10px; color: #64748b;">tấn/ha</small></p>
+        # Kiểm tra xem models có được load thành công không
+        if not models:
+            st.error("Không tìm thấy tệp mô hình (.pkl). Vui lòng kiểm tra thư mục backend/model/")
+        else:
+            # Hiển thị vùng kết quả tối màu
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 50px; border-radius: 32px; color: white; text-align: center; margin-top: 20px; position: relative;">
+                <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #10b981; font-size: 10px; font-weight: 900; padding: 6px 16px; border-radius: 20px; text-transform: uppercase;">
+                    Phân tích thành công
+                </div>
+                <h3 style="color: #94a3b8; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 30px;">Năng suất ước tính từ các mô hình</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+                    <div>
+                        <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">Random Forest</p>
+                        <p style="font-size: 28px; font-weight: 700;">{models['rf'].predict(df)[0] if 'rf' in models else 0:.3f} <small style="font-size: 12px; color: #64748b;">tấn/ha</small></p>
+                    </div>
+                    <div>
+                        <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">XGBoost</p>
+                        <p style="font-size: 28px; font-weight: 700;">{models['xgb'].predict(df)[0] if 'xgb' in models else 0:.3f} <small style="font-size: 12px; color: #64748b;">tấn/ha</small></p>
+                    </div>
+                    <div>
+                        <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">LightGBM</p>
+                        <p style="font-size: 28px; font-weight: 700;">{models['lgbm'].predict(df)[0] if 'lgbm' in models else 0:.3f} <small style="font-size: 12px; color: #64748b;">tấn/ha</small></p>
+                    </div>
+                </div>
             </div>
-            <div>
-                <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">XGBoost</p>
-                <p style="font-size: 28px; font-weight: 700;">{models['xgb'].predict(df)[0] if 'xgb' in models else 0:.3f} <small style="font-size: 10px; color: #64748b;">tấn/ha</small></p>
-            </div>
-            <div>
-                <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">LightGBM</p>
-                <p style="font-size: 28px; font-weight: 700;">{models['lgbm'].predict(df)[0] if 'lgbm' in models else 0:.3f} <small style="font-size: 10px; color: #64748b;">tấn/ha</small></p>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            st.balloons() # Thêm hiệu ứng chúc mừng
+            
+    except Exception as e:
+        st.error(f"Lỗi khi dự đoán: {e}")
+        st.info("Gợi ý: Kiểm tra xem tên các cột trong DataFrame có khớp với Model không.")
+else:
+    # Trạng thái chờ khi chưa nhấn nút
+    st.info("Vui lòng nhập thông số và nhấn 'DỰ ĐOÁN NGAY' để xem kết quả.")
