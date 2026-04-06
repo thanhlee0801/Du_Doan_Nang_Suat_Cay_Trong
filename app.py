@@ -1,154 +1,80 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import pandas as pd
+import joblib
+import os
 
-# Cấu hình trang Streamlit
+# Cấu hình trang
 st.set_page_config(page_title="AgroPredict AI", layout="wide")
 
-# Phần CSS và HTML giao diện
-# Lưu ý: Sử dụng Tailwind CSS qua CDN để đảm bảo style giống hệt ảnh
-html_code = """
-<!doctype html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { 
-        font-family: 'Inter', sans-serif; 
-        background-color: #f0fdf4; 
-        margin: 0;
-        display: flex;
-        justify-content: center;
-        padding: 20px;
-    }
-    .card-shadow { box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05); }
-    .gradient-bg { background: linear-gradient(135deg, #064e3b 0%, #020617 100%); }
-    .input-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; width: 100%; font-size: 14px; outline: none; }
-    input:focus, select:focus { border-color: #10b981; ring: 2px; ring-color: #10b981; }
-  </style>
-</head>
-<body>
-  <div style="max-width: 1000px; width: 100%;">
-    <header style="text-align: center; margin-bottom: 40px;">
-      <h1 style="font-size: 36px; font-weight: 800; color: #1e293b; margin-bottom: 8px;">
-        AgroPredict <span style="color: #10b981;">AI</span>
-      </h1>
-      <p style="color: #64748b; font-size: 14px; max-width: 500px; margin: 0 auto; line-height: 1.6;">
-        Ứng dụng công nghệ học máy để tối ưu hóa năng suất nông nghiệp dựa trên dữ liệu thổ nhưỡng và khí hậu.
-      </p>
-    </header>
+# --- 1. LOAD MODELS ---
+# Đường dẫn tới thư mục chứa model (thay đổi tùy theo cấu trúc máy bạn)
+MODEL_PATH = "Du_Doan_Nang_Suat_Cay_Trong-main/backend/model/"
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; margin-bottom: 30px;">
-      
-      <div style="background: white; border-radius: 32px; padding: 30px; border: 1px solid white;" class="card-shadow">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-            <div style="background: #ecfdf5; padding: 10px; border-radius: 12px; color: #059669;">📍</div>
-            <div>
-                <h3 style="font-weight: 700; color: #1e293b; margin: 0;">Môi trường & Địa lý</h3>
-                <p style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin: 0;">Thông tin vùng miền và khí hậu</p>
-            </div>
-        </div>
+@st.cache_resource
+def load_all_models():
+    models = {}
+    try:
+        models['rf'] = joblib.load(os.path.join(MODEL_PATH, "random_forest_model.pkl"))
+        models['xgb'] = joblib.load(os.path.join(MODEL_PATH, "xgboost_model.pkl"))
+        models['lgbm'] = joblib.load(os.path.join(MODEL_PATH, "lightgbm_model.pkl"))
+        # Thêm các model khác nếu có trong thư mục của bạn
+    except Exception as e:
+        st.error(f"Lỗi load model: {e}")
+    return models
 
-        <div style="display: flex; flex-direction: column; gap: 15px;">
-            <div>
-                <label style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-left: 4px;">Vùng miền canh tác</label>
-                <select class="input-box"><option>Miền Bắc</option></select>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div>
-                    <label style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Loại đất</label>
-                    <select class="input-box"><option>Đất Cát</option></select>
-                </div>
-                <div>
-                    <label style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Cây trồng</label>
-                    <select class="input-box"><option>Lúa</option></select>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <div>
-                    <label style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Lượng mưa (mm)</label>
-                    <input type="number" class="input-box" value="250">
-                </div>
-                <div>
-                    <label style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Nhiệt độ (°C)</label>
-                    <input type="number" class="input-box" value="28">
-                </div>
-            </div>
-        </div>
-      </div>
+models = load_all_models()
 
-      <div style="background: white; border-radius: 32px; padding: 30px; border: 1px solid white; display: flex; flex-direction: column; justify-content: space-between;" class="card-shadow">
-        <div>
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-                <div style="background: #eff6ff; padding: 10px; border-radius: 12px; color: #2563eb;">🧪</div>
-                <div>
-                    <h3 style="font-weight: 700; color: #1e293b; margin: 0;">Dinh dưỡng & Quy trình</h3>
-                    <p style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin: 0;">Thông số hóa lý và thời gian</p>
-                </div>
-            </div>
+# --- 2. GIAO DIỆN (FRONTEND) ---
+st.markdown("""
+    <style>
+    .main { background-color: #f0fdf4; }
+    .stButton>button { width: 100%; background-color: #10b981; color: white; border-radius: 12px; height: 3em; font-weight: bold; }
+    .result-card { background: linear-gradient(135deg, #064e3b 0%, #020617 100%); color: white; padding: 20px; border-radius: 20px; text-align: center; }
+    </style>
+    """, unsafe_allow_html=True)
 
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
-                <div style="background: #fffaf5; border: 1px solid #ffedd5; padding: 15px; border-radius: 16px; text-align: center;">
-                    <span style="font-size: 9px; font-weight: 900; color: #fb923c; display: block;">NITƠ (N)</span>
-                    <span style="font-size: 24px; font-weight: 700; color: #ea580c;">14</span>
-                </div>
-                <div style="background: #f0f7ff; border: 1px solid #dbeafe; padding: 15px; border-radius: 16px; text-align: center;">
-                    <span style="font-size: 9px; font-weight: 900; color: #60a5fa; display: block;">P (P)</span>
-                    <span style="font-size: 24px; font-weight: 700; color: #2563eb;">52</span>
-                </div>
-                <div style="background: #faf5ff; border: 1px solid #f3e8ff; padding: 15px; border-radius: 16px; text-align: center;">
-                    <span style="font-size: 9px; font-weight: 900; color: #c084fc; display: block;">KALI (K)</span>
-                    <span style="font-size: 24px; font-weight: 700; color: #9333ea;">76</span>
-                </div>
-            </div>
+st.title("AgroPredict AI 🌾")
+st.write("Dự đoán năng suất dựa trên dữ liệu thổ nhưỡng")
 
-            <div style="margin-bottom: 20px;">
-                <p style="font-size: 10px; font-weight: 700; text-align: center; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px;">Thời tiết hiện tại</p>
-                <div style="display: flex; background: #f1f5f9; padding: 4px; border-radius: 12px;">
-                    <button style="flex: 1; padding: 8px; background: white; border-radius: 8px; font-size: 12px; font-weight: 700; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">Nắng</button>
-                    <button style="flex: 1; padding: 8px; background: transparent; color: #94a3b8; border: none; font-size: 12px;">Mưa</button>
-                    <button style="flex: 1; padding: 8px; background: transparent; color: #94a3b8; border: none; font-size: 12px;">Âm u</button>
-                </div>
-            </div>
-        </div>
+# Chia cột nhập liệu
+col1, col2 = st.columns(2)
 
-        <button style="width: 100%; background: #059669; color: white; border: none; padding: 15px; border-radius: 16px; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);">
-            DỰ ĐOÁN NGAY <span>→</span>
-        </button>
-      </div>
-    </div>
+with col1:
+    st.subheader("📍 Môi trường & Địa lý")
+    region = st.selectbox("Vùng miền", ["Miền Bắc", "Miền Trung", "Miền Nam"])
+    soil_type = st.selectbox("Loại đất", ["Đất Cát", "Đất Phù Sa", "Đất Phèn"])
+    crop = st.selectbox("Cây trồng", ["Lúa", "Ngô", "Khoai"])
+    rainfall = st.number_input("Lượng mưa (mm)", value=250)
+    temp = st.number_input("Nhiệt độ (°C)", value=28)
 
-    <div class="gradient-bg" style="border-radius: 32px; padding: 40px; text-align: center; position: relative; color: white;">
-        <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #10b981; font-size: 10px; font-weight: 900; padding: 6px 16px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px;">
-            Phân tích thành công
-        </div>
-        <p style="font-size: 11px; color: #94a3b8; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 30px; margin-top: 10px;">Năng suất ước tính từ các mô hình</p>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px;">
-            <div>
-                <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">Transformer</p>
-                <p style="font-size: 24px; font-weight: 700;">2.49 <small style="font-size: 10px; color: #64748b; font-weight: 400;">tấn/ha</small></p>
-            </div>
-            <div>
-                <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">LightGBM</p>
-                <p style="font-size: 24px; font-weight: 700;">2.629 <small style="font-size: 10px; color: #64748b; font-weight: 400;">tấn/ha</small></p>
-            </div>
-            <div>
-                <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">Neural Net</p>
-                <p style="font-size: 24px; font-weight: 700;">2.545 <small style="font-size: 10px; color: #64748b; font-weight: 400;">tấn/ha</small></p>
-            </div>
-            <div>
-                <p style="font-size: 9px; color: #10b981; font-weight: 700; text-transform: uppercase;">XGBoost</p>
-                <p style="font-size: 24px; font-weight: 700;">2.658 <small style="font-size: 10px; color: #64748b; font-weight: 400;">tấn/ha</small></p>
-            </div>
-        </div>
-    </div>
-  </div>
-</body>
-</html>
-"""
+with col2:
+    st.subheader("🧪 Dinh dưỡng & Quy trình")
+    n = st.number_input("Nitơ (N)", value=14)
+    p = st.number_input("Phốt pho (P)", value=52)
+    k = st.number_input("Kali (K)", value=76)
+    weather = st.radio("Thời tiết", ["Nắng", "Mưa", "Âm u"], horizontal=True)
+    harvest_days = st.number_input("Ngày thu hoạch dự kiến", value=72)
 
-# Hiển thị vào Streamlit
-components.html(html_code, height=900, scrolling=True)
+# --- 3. LOGIC DỰ ĐOÁN ---
+if st.button("DỰ ĐOÁN NGAY →"):
+    # Chuẩn bị dữ liệu đầu vào (Lưu ý: Tên cột phải khớp chính xác với lúc bạn Train Model)
+    # Ở đây tôi ví dụ 5 cột cơ bản, bạn cần điều chỉnh theo đúng file training của bạn
+    input_df = pd.DataFrame([[n, p, k, temp, rainfall]], 
+                            columns=['N', 'P', 'K', 'temperature', 'rainfall'])
+    
+    # Thực hiện dự đoán
+    res_rf = models['rf'].predict(input_df)[0] if 'rf' in models else 0
+    res_xgb = models['xgb'].predict(input_df)[0] if 'xgb' in models else 0
+    res_lgbm = models['lgbm'].predict(input_df)[0] if 'lgbm' in models else 0
+
+    # --- 4. HIỂN THỊ KẾT QUẢ ---
+    st.markdown("---")
+    st.markdown('<div class="result-card">', unsafe_allow_html=True)
+    st.write("### NĂNG SUẤT ƯỚC TÍNH")
+    
+    res_col1, res_col2, res_col3 = st.columns(3)
+    res_col1.metric("Random Forest", f"{res_rf:.3f} tấn/ha")
+    res_col2.metric("XGBoost", f"{res_xgb:.3f} tấn/ha")
+    res_col3.metric("LightGBM", f"{res_lgbm:.3f} tấn/ha")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
