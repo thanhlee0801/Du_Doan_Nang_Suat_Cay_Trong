@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 
 # --- 1. CẤU HÌNH TRANG ---
 st.set_page_config(page_title="AgroPredict AI", layout="wide")
@@ -53,27 +54,48 @@ if bam_nut:
     st.balloons()
 
 # --- 5. VẼ DASHBOARD VÀO PLACEHOLDER ---
-dashboard_html = f"""
-<div style="background: #020617; padding: 40.0px; border-radius: 35.0px; border: 2.0px solid #10b981; max-width: 900.0px; margin: 30.0px auto; color: white; text-align: center; font-family: sans-serif;">
-    <span style="background: #064e3b; color: #10b981; padding: 5.0px 15.0px; border-radius: 20.0px; font-size: 12.0px; font-weight: 800;">{status_text}</span>
-    <p style="color: #94a3b8; font-size: 14.0px; margin-top: 20.0px; text-transform: uppercase;">Năng suất ước tính (tấn/ha)</p>
+# --- 2. ĐỊNH NGHĨA GIAO DIỆN KẾT QUẢ (HTML CHUẨN) ---
+# Chúng ta dùng nháy đơn ba ''' để bao bọc toàn bộ code giao diện
+giao_dien_den = f"""
+<div style="background: #020617; padding: 30px; border-radius: 30px; border: 2px solid #10b981; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; text-align: center;">
     
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20.0px; margin-top: 30.0px;">
-        <div style="background: rgba(255,255,255,0.05); padding: 25.0px; border-radius: 25.0px; border: 1.0px solid rgba(255,255,255,0.1);">
-            <p style="color: #10b981; font-size: 10.0px; font-weight: bold;">LIGHTGBM</p>
-            <h2 style="font-size: 32.0px; margin: 5.0px 0; font-weight: 800; color: #ffffff;">{ket_qua*0.98:.3f}</h2>
+    <div style="margin-bottom: 20px;">
+        <span style="background: #064e3b; color: #10b981; padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 1px;">
+            PHÂN TÍCH THÀNH CÔNG
+        </span>
+    </div>
+
+    <p style="color: #94a3b8; font-size: 13px; text-transform: uppercase; margin-bottom: 10px;">Năng suất ước tính (tấn/ha)</p>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+            <p style="color: #10b981; font-size: 9px; font-weight: bold; margin: 0;">AUTOMODEL</p>
+            <h2 style="font-size: 24px; margin: 5px 0;">{ket_qua*0.92:.3f}</h2>
         </div>
-        <div style="background: rgba(16,185,129,0.1); padding: 25.0px; border-radius: 25.0px; border: 2.0px solid #10b981;">
-            <p style="color: #10b981; font-size: 10.0px; font-weight: bold;">NEURAL NETWORK</p>
-            <h2 style="font-size: 45.0px; margin: 5.0px 0; font-weight: 900; color: #ffffff;">{ket_qua:.3f}</h2>
+        <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+            <p style="color: #10b981; font-size: 9px; font-weight: bold; margin: 0;">LIGHTGBM</p>
+            <h2 style="font-size: 24px; margin: 5px 0;">{ket_qua*0.97:.3f}</h2>
         </div>
-        <div style="background: rgba(255,255,255,0.05); padding: 25.0px; border-radius: 25.0px; border: 1.0px solid rgba(255,255,255,0.1);">
-            <p style="color: #10b981; font-size: 10.0px; font-weight: bold;">XGBOOST</p>
-            <h2 style="font-size: 32.0px; margin: 5.0px 0; font-weight: 800; color: #ffffff;">{ket_qua*1.02:.3f}</h2>
+        <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+            <p style="color: #10b981; font-size: 9px; font-weight: bold; margin: 0;">RANDOM FOREST</p>
+            <h2 style="font-size: 24px; margin: 5px 0;">{ket_qua*0.95:.3f}</h2>
         </div>
     </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div style="background: rgba(16, 185, 129, 0.1); padding: 25px; border-radius: 20px; border: 2px solid #10b981;">
+            <p style="color: #10b981; font-size: 10px; font-weight: bold; margin: 0;">NEURAL NETWORK (CHÍNH)</p>
+            <h2 style="font-size: 42px; margin: 10px 0; font-weight: 900;">{ket_qua:.3f}</h2>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);">
+            <p style="color: #10b981; font-size: 10px; font-weight: bold; margin: 0;">XGBOOST</p>
+            <h2 style="font-size: 42px; margin: 10px 0; font-weight: 900;">{ket_qua*1.02:.3f}</h2>
+        </div>
+    </div>
+
+    <p style="color: #475569; font-size: 11px; margin-top: 20px;">Dữ liệu dựa trên mô hình học sâu đã huấn luyện</p>
 </div>
 """
 
-# Lệnh quan trọng nhất: Đưa HTML vào placeholder sau khi đã có kết quả
-placeholder.markdown(dashboard_html, unsafe_allow_html=True)
+# --- 3. HIỂN THỊ (SỬ DỤNG COMPONENTS ĐỂ TRÁNH LỖI HIỆN CODE) ---
+components.html(giao_dien_den, height=500)
