@@ -5,10 +5,8 @@ import joblib
 import os
 import json
 
-# --- 1. CẤU HÌNH TRANG ---
+# --- 1. CẤU HÌNH ---
 st.set_page_config(page_title="AgroPredict AI", layout="wide")
-
-# Đường dẫn tới thư mục model (Đảm bảo đúng tên folder trong GitHub)
 MODEL_DIR = "Du_Doan_Nang_Suat_Cay_Trong-main/backend/model/"
 
 @st.cache_resource
@@ -22,7 +20,6 @@ def load_models():
 models = load_models()
 
 # --- 2. GIAO DIỆN NHẬP LIỆU (HTML) ---
-# Sử dụng dấu nháy đơn 3 lần (''') để bao bọc HTML chứa dấu nháy kép (")
 html_form = '''
 <!DOCTYPE html>
 <html>
@@ -30,22 +27,27 @@ html_form = '''
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f0fdf4; font-family: sans-serif; padding: 10px; }
-        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; }
-        input { border: 1px solid #ddd; border-radius: 8px; padding: 8px; width: 100%; margin-bottom: 10px; outline: none; }
-        input:focus { border-color: #10b981; }
-        button { background: #10b981; color: white; width: 100%; padding: 12px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
-    </style>
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 10px 15px rgba(0,0,0,0.05); }
+        label { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-left: 5px; }
+        input { border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; width: 100%; margin-bottom: 12px; outline: none; background: #f8fafc; }
+        input:focus { border-color: #10b981; background: white; }
+        button { background: #059669; color: white; width: 100%; padding: 15px; border-radius: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; border: none; shadow: 0 4px 6px rgba(5, 150, 105, 0.2); }
+        button:hover { background: #047857; transform: translateY(-1px); }
+    </script>
 </head>
 <body>
     <div class="max-w-md mx-auto card">
-        <h3 style="text-align:center; color:#065f46; margin-bottom: 15px;">Dự Đoán Năng Suất</h3>
-        <label>Nitơ (N)</label> <input id="n" type="number" value="14">
-        <label>Phốt pho (P)</label> <input id="p" type="number" value="52">
-        <label>Kali (K)</label> <input id="k" type="number" value="76">
-        <label>Nhiệt độ (°C)</label> <input id="temp" type="number" value="28">
-        <label>Lượng mưa (mm)</label> <input id="rain" type="number" value="250">
-        <button onclick="send()">DỰ ĐOÁN NGAY</button>
+        <h2 style="text-align:center; color:#1e293b; margin-bottom: 20px; font-weight: 800;">AgroPredict <span style="color:#10b981;">AI</span></h2>
+        <div style="grid-template-columns: 1fr 1fr; display: grid; gap: 10px;">
+            <div><label>Nitơ (N)</label><input id="n" type="number" value="14"></div>
+            <div><label>Phốt pho (P)</label><input id="p" type="number" value="52"></div>
+        </div>
+        <label>Kali (K)</label><input id="k" type="number" value="76">
+        <div style="grid-template-columns: 1fr 1fr; display: grid; gap: 10px;">
+            <div><label>Nhiệt độ (°C)</label><input id="temp" type="number" value="28"></div>
+            <div><label>Lượng mưa (mm)</label><input id="rain" type="number" value="250"></div>
+        </div>
+        <button onclick="send()">DỰ ĐOÁN NGAY →</button>
     </div>
     <script>
         function send() {
@@ -63,60 +65,51 @@ html_form = '''
 </html>
 '''
 
+# Hiển thị Form nhập liệu
 data_input = components.html(html_form, height=520)
 
-# --- 3. XỬ LÝ DỰ ĐOÁN ---
+# Tạo một vùng trống để hiển thị kết quả
+result_container = st.empty()
+
+# --- 3. XỬ LÝ DỰ ĐOÁN VÀ HIỂN THỊ ---
 if data_input:
     try:
-        # Giải mã JSON an toàn
+        # Giải mã dữ liệu
         d = json.loads(data_input)
         
-        # Tạo DataFrame (Lưu ý: Tên cột N, P, K, temperature, rainfall phải khớp với Model)
+        # Chuẩn bị DataFrame (Lưu ý: Tên cột phải giống hệt lúc Train Model)
         df = pd.DataFrame([[
             float(d['n']), float(d['p']), float(d['k']), 
             float(d['temp']), float(d['rain'])
         ]], columns=['N', 'P', 'K', 'temperature', 'rainfall'])
 
         if 'rf' in models:
+            # Chạy Model dự đoán
             res = models['rf'].predict(df)[0]
             
-            # Sử dụng .format() để chèn biến 'res' vào chuỗi HTML 
-            # Cách này giúp tránh lỗi SyntaxError do dùng f-string với ngoặc nhọn
-            ket_qua_html = '''
+            # Giao diện hiển thị kết quả Dark Mode
+            res_html = '''
             <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); 
-                        padding: 30px; border-radius: 20px; color: white; text-align: center; margin-top: 20px;">
-                <p style="color: #10b981; font-weight: bold; font-size: 12px; margin: 0;">KẾT QUẢ DỰ ĐOÁN</p>
-                <h2 style="font-size: 38px; margin: 10px 0;">{:.3f} <span style="font-size: 16px; color: #94a3b8;">tấn/ha</span></h2>
-                <p style="font-size: 11px; color: #64748b;">Dựa trên phân tích từ mô hình Random Forest</p>
+                        padding: 40px; border-radius: 30px; color: white; text-align: center; 
+                        margin: 20px auto; max-width: 450px; border: 1px solid #10b981;
+                        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+                <p style="color: #10b981; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Phân tích thành công</p>
+                <h3 style="color: #94a3b8; font-size: 11px; margin-top: 20px; text-transform: uppercase;">Năng suất ước tính</h3>
+                <h2 style="font-size: 48px; font-weight: 800; margin: 10px 0; color: #ffffff;">
+                    {:.3f} <span style="font-size: 16px; color: #64748b; font-weight: 400;">tấn/ha</span>
+                </h2>
+                <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 20px auto; width: 60%;"></div>
+                <p style="font-size: 10px; color: #475569;">Mô hình: Random Forest Regressor</p>
             </div>
             '''.format(res)
             
-            st.markdown(ket_qua_html, unsafe_allow_html=True)
+            # Đổ kết quả vào vùng trống đã tạo
+            result_container.markdown(res_html, unsafe_allow_html=True)
             st.balloons()
         else:
-            st.error("Không tìm thấy model (.pkl) trong thư mục backend/model/")
+            result_container.error("⚠️ Không tìm thấy tệp model (.pkl) trong thư mục backend/model/")
 
     except Exception as e:
-        st.error(f"Lỗi: {e}")
-# --- 4. HIỂN THỊ KẾT QUẢ ---
-if data_input:
-    # Gọi hàm xử lý đã được cách ly
-    ket_qua = giai_ma_va_du_doan(data_input)
-    
-    if isinstance(ket_qua, float):
-        # Hiển thị giao diện kết quả tối màu (Dark UI)
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 35px; border-radius: 24px; color: white; text-align: center; margin-top: 20px; border: 1px solid #10b981;">
-            <p style="color: #10b981; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Dự đoán thành công</p>
-            <h2 style="font-size: 36px; font-weight: 800; margin: 15px 0;">{ket_qua:.3f} <small style="font-size: 14px; color: #94a3b8; font-weight: 400;">tấn/ha</small></h2>
-            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px auto; width: 50%;"></div>
-            <p style="font-size: 10px; color: #64748b;">Mô hình: Random Forest Regressor</p>
-        </div>
-        """, unsafe_allow_html=True)
-        st.balloons()
-    else:
-        st.error(f"Hệ thống báo lỗi: {ket_qua}")
-        """, unsafe_allow_html=True)
-        st.balloons()
-    else:
-        st.error(f"Hệ thống chưa thể phân tích: {ket_qua}")
+        result_container.error(f"❌ Lỗi xử lý: {e}")
+else:
+    result_container.info("💡 Điền thông số và nhấn nút để xem kết quả phân tích.")
