@@ -128,37 +128,37 @@ data_input = components.html(html_code, height=520)
 # --- 3. XỬ LÝ DỰ ĐOÁN ---
 if data_input:
     try:
-        # Bước 1: Ép kiểu dữ liệu về Dictionary thuần túy của Python
-        # Việc bọc trong dict() giúp ngắt kết nối với các hàm Magic của Streamlit
-        input_dict = dict(data_input)
+        # Bước 1: Cách ly dữ liệu khỏi Streamlit Magic
+        # Chúng ta biến data_input thành một Dictionary Python thuần túy
+        du_lieu = dict(data_input)
 
-        # Bước 2: TRUY CẬP TRỰC TIẾP bằng ngoặc vuông [], tuyệt đối không dùng .get() hay .keys()
-        # Chúng ta dùng cấu trúc 'if key in dict' để kiểm tra sự tồn tại của phím
-        n = float(input_dict['n']) if 'n' in input_dict else 0.0
-        p = float(input_dict['p']) if 'p' in input_dict else 0.0
-        k = float(input_dict['k']) if 'k' in input_dict else 0.0
-        t = float(input_dict['temp']) if 'temp' in input_dict else 25.0
-        r = float(input_dict['rain']) if 'rain' in input_dict else 100.0
+        # Bước 2: TRUY CẬP TRỰC TIẾP bằng ngoặc vuông [], KHÔNG dùng .get() hay .keys()
+        # Nếu phím không tồn tại, Python sẽ báo lỗi KeyError (ta sẽ xử lý trong except)
+        val_n = float(du_lieu['n'])
+        val_p = float(du_lieu['p'])
+        val_k = float(du_lieu['k'])
+        val_t = float(du_lieu['temp'])
+        val_r = float(du_lieu['rain'])
 
         # Bước 3: Tạo DataFrame để đưa vào Model
-        # Lưu ý: Tên cột 'N', 'P', 'K'... phải khớp 100% với lúc bạn Train Model
+        # CHÚ Ý: Tên cột 'N', 'P', 'K', 'temperature', 'rainfall' phải khớp 100% với lúc bạn Train Model
         df = pd.DataFrame([{
-            'N': n, 
-            'P': p, 
-            'K': k, 
-            'temperature': t, 
-            'rainfall': r
+            'N': val_n, 
+            'P': val_p, 
+            'K': val_k, 
+            'temperature': val_t, 
+            'rainfall': val_r
         }])
 
         if models:
-            # Dự đoán từ model Random Forest
-            prediction = models['rf'].predict(df)[0]
+            # Dự đoán từ model Random Forest (rf)
+            ket_qua = models['rf'].predict(df)[0]
             
-            # Bước 4: Hiển thị kết quả bằng HTML tối màu (Dark Mode UI)
+            # Bước 4: Hiển thị kết quả bằng HTML tối màu (Giao diện chuyên nghiệp)
             st.markdown(f"""
             <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 35px; border-radius: 24px; color: white; text-align: center; margin-top: 20px; border: 1px solid #10b981;">
                 <p style="color: #10b981; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Phân tích thành công</p>
-                <h2 style="font-size: 36px; font-weight: 800; margin: 15px 0;">{prediction:.3f} <small style="font-size: 14px; color: #94a3b8; font-weight: 400;">tấn/ha</small></h2>
+                <h2 style="font-size: 36px; font-weight: 800; margin: 15px 0;">{ket_qua:.3f} <small style="font-size: 14px; color: #94a3b8; font-weight: 400;">tấn/ha</small></h2>
                 <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px auto; width: 50%;"></div>
                 <p style="font-size: 10px; color: #64748b;">Mô hình: Random Forest Regressor</p>
             </div>
@@ -167,6 +167,7 @@ if data_input:
         else:
             st.error("⚠️ Không tìm thấy file mô hình (.pkl).")
 
+    except KeyError as e:
+        st.error(f"Thiếu thông tin đầu vào: {e}")
     except Exception as e:
-        # Nếu vẫn lỗi, in ra lỗi thô để chúng ta biết nó kẹt ở đâu
         st.error(f"Lỗi hệ thống: {str(e)}")
