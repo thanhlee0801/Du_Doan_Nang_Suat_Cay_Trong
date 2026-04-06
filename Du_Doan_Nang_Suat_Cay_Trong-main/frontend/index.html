@@ -1,17 +1,183 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="/src/index.css" rel="stylesheet">
-  <title>my-project</title>
+  <title>AgroPredict AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <style type="text/css">
+    body { font-family: 'Inter', sans-serif; background-color: #f0fdf4; }
+    
+    /* Định nghĩa các class tùy chỉnh mà bạn đã sử dụng */
+    .card-shadow { 
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05); 
+    }
+    
+    .input-box { 
+      background: #f8fafc; 
+      border: 1px solid #e2e8f0; 
+      transition: all 0.2s;
+    }
+    
+    .input-box:focus {
+      background: #ffffff;
+      border-color: #10b981;
+    }
+
+    .gradient-bg { 
+      background: linear-gradient(135deg, #064e3b 0%, #020617 100%); 
+    }
+  </style>
 </head>
 
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
-</body>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-10">
 
+  <div class="max-w-5xl w-full">
+    <header class="text-center mb-10">
+      <h1 class="text-4xl font-extrabold text-slate-800 tracking-tight">AgroPredict <span class="text-emerald-500">AI</span></h1>
+      <p class="text-slate-500 text-sm mt-3 max-w-lg mx-auto leading-relaxed">
+        Ứng dụng công nghệ học máy để tối ưu hóa năng suất nông nghiệp dựa trên dữ liệu thổ nhưỡng và khí hậu.
+      </p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      <div class="bg-white rounded-[32px] p-8 card-shadow border border-white">
+        <div class="flex items-center gap-3 mb-8">
+          <div class="p-3 bg-emerald-50 rounded-2xl">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="font-bold text-slate-800">Môi trường & Địa lý</h2>
+            <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Thông tin vùng miền và khí hậu</p>
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Vùng miền canh tác</label>
+            <select class="w-full input-box mt-1 rounded-xl p-3 text-sm outline-none">
+              <option>Miền Bắc</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Loại đất</label>
+              <select class="w-full input-box mt-1 rounded-xl p-3 text-sm outline-none">
+                <option>Đất Cát</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Cây trồng</label>
+              <select class="w-full input-box mt-1 rounded-xl p-3 text-sm outline-none">
+                <option>Lúa</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Lượng mưa (mm)</label>
+              <input type="number" value="250" class="w-full input-box mt-1 rounded-xl p-3 text-sm outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Nhiệt độ (°C)</label>
+              <input type="number" value="28" class="w-full input-box mt-1 rounded-xl p-3 text-sm outline-none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-[32px] p-8 card-shadow border border-white flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-3 mb-8">
+            <div class="p-3 bg-blue-50 rounded-2xl">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.673.337a4 4 0 01-2.506.327l-1.623-.325a2 2 0 00-1.183.15l-3.081 1.54a2 2 0 00-1.14 1.834V19a2 2 0 002 2h14a2 2 0 002-2v-1.171a2 2 0 00-1.14-1.834l-3.081-1.54z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="font-bold text-slate-800">Dinh dưỡng & Quy trình</h2>
+              <p class="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">Thông số hóa lý và thời gian</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 mb-8">
+            <div class="bg-orange-50 border border-orange-100 rounded-2xl p-4 text-center">
+              <span class="text-[9px] font-black text-orange-400 block mb-1 uppercase">Nitơ (N)</span>
+              <span class="text-3xl font-bold text-orange-600">14</span>
+            </div>
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
+              <span class="text-[9px] font-black text-blue-400 block mb-1 uppercase">Phốt Pho (P)</span>
+              <span class="text-3xl font-bold text-blue-600">52</span>
+            </div>
+            <div class="bg-purple-50 border border-purple-100 rounded-2xl p-4 text-center">
+              <span class="text-[9px] font-black text-purple-400 block mb-1 uppercase">Kali (K)</span>
+              <span class="text-3xl font-bold text-purple-600">76</span>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <p class="text-[10px] font-bold text-center text-slate-400 uppercase mb-3 tracking-widest">Tình trạng thời tiết hiện tại</p>
+            <div class="flex bg-slate-100 p-1 rounded-xl">
+              <button class="flex-1 py-2 bg-white rounded-lg shadow-sm text-xs font-bold text-slate-700">Nắng</button>
+              <button class="flex-1 py-2 text-xs text-slate-400 hover:text-slate-600 transition-colors">Mưa</button>
+              <button class="flex-1 py-2 text-xs text-slate-400 hover:text-slate-600 transition-colors">Âm u</button>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <label class="text-[10px] font-bold text-slate-400 uppercase">Ngày thu hoạch dự kiến</label>
+            <input type="text" value="72" class="w-full bg-slate-50 border-none text-center text-xl font-bold text-slate-700 mt-1 rounded-xl p-2 outline-none">
+          </div>
+        </div>
+
+        <button class="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 active:scale-[0.98]">
+          DỰ ĐOÁN NGAY <span>→</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="gradient-bg rounded-[32px] p-10 text-center relative shadow-2xl overflow-hidden">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+      
+      <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-[10px] font-black text-white px-5 py-1.5 rounded-full uppercase tracking-widest shadow-lg z-10">
+        Phân tích thành công
+      </div>
+      
+      <h3 class="text-slate-400 text-[11px] font-medium tracking-[0.2em] mb-10 mt-2 uppercase">Năng suất ước tính từ các mô hình</h3>
+
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-8 text-white relative z-10">
+        <div class="space-y-1">
+          <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-tighter">Automodel (Transformer)</p>
+          <p class="text-2xl font-bold">2.49 <span class="text-[10px] text-slate-500 font-normal">tấn/ha</span></p>
+        </div>
+        <div class="space-y-1">
+          <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-tighter">LightGBM</p>
+          <p class="text-2xl font-bold">2.629 <span class="text-[10px] text-slate-500 font-normal">tấn/ha</span></p>
+        </div>
+        <div class="space-y-1">
+          <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-tighter">Neural Network</p>
+          <p class="text-2xl font-bold">2.545 <span class="text-[10px] text-slate-500 font-normal">tấn/ha</span></p>
+        </div>
+        <div class="space-y-1">
+          <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-tighter">Random Forest</p>
+          <p class="text-2xl font-bold">2.704 <span class="text-[10px] text-slate-500 font-normal">tấn/ha</span></p>
+        </div>
+        <div class="space-y-1">
+          <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-tighter">XGBoost</p>
+          <p class="text-2xl font-bold">2.658 <span class="text-[10px] text-slate-500 font-normal">tấn/ha</span></p>
+        </div>
+      </div>
+
+      <p class="text-[10px] text-slate-500 italic mt-10 opacity-60 relative z-10 leading-relaxed">
+        Các dự đoán được sinh ra từ các thuật toán Học máy và Học sâu khác nhau<br class="hidden md:block"> dựa trên tập dữ liệu đã huấn luyện.
+      </p>
+    </div>
+  </div>
+
+</body>
 </html>
