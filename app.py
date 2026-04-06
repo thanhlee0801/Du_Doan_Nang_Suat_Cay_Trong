@@ -125,34 +125,36 @@ html_code = """
 # Hiển thị giao diện và nhận giá trị
 data_input = components.html(html_code, height=520)
 
-# --- 3. HÀM XỬ LÝ DỰ ĐOÁN (CÁCH LY KHỎI MAGIC) ---
-def thuc_hien_du_doan(raw_data):
+# --- 3. HÀM XỬ LÝ DỰ ĐOÁN (CÁCH LY TUYỆT ĐỐI) ---
+def giai_ma_va_du_doan(raw_input):
     try:
-        # Ép kiểu về dict thuần túy ngay lập tức
-        d = dict(raw_data)
+        # BƯỚC QUAN TRỌNG: Chuyển sang JSON string rồi load lại thành Dict thuần túy
+        # Việc này giúp Python hiểu đây là dữ liệu thường, không phải đối tượng Streamlit
+        json_str = json.dumps(raw_input)
+        clean_dict = json.loads(json_str)
         
-        # TRUY CẬP TRỰC TIẾP bằng ngoặc vuông [], KHÔNG dùng .get() hay .keys()
-        # Streamlit Magic sẽ không chặn phép truy cập chỉ mục này
-        n = float(d['n'])
-        p = float(d['p'])
-        k = float(d['k'])
-        t = float(d['temp'])
-        r = float(d['rain'])
+        # TRUY CẬP TRỰC TIẾP bằng ngoặc vuông [], tuyệt đối không dùng .get() hay .keys()
+        n = float(clean_dict['n'])
+        p = float(clean_dict['p'])
+        k = float(clean_dict['k'])
+        t = float(clean_dict['temp'])
+        r = float(clean_dict['rain'])
 
-        # Tạo DataFrame (Lưu ý: Tên cột phải khớp 100% với lúc bạn Train Model)
+        # Tạo DataFrame (Tên cột phải khớp 100% với lúc bạn Train Model)
         df = pd.DataFrame([[n, p, k, t, r]], 
                           columns=['N', 'P', 'K', 'temperature', 'rainfall'])
 
         if models and 'rf' in models:
             res = models['rf'].predict(df)[0]
-            return res
-        return None
+            return float(res)
+        return "Không tìm thấy model"
     except Exception as e:
-        return f"Lỗi: {str(e)}"
+        return f"Lỗi xử lý: {str(e)}"
 
 # --- 4. HIỂN THỊ KẾT QUẢ ---
 if data_input:
-    ket_qua = thuc_hien_du_doan(data_input)
+    # Gọi hàm xử lý đã được cách ly
+    ket_qua = giai_ma_va_du_doan(data_input)
     
     if isinstance(ket_qua, float):
         # Hiển thị giao diện kết quả tối màu (Dark UI)
@@ -163,6 +165,10 @@ if data_input:
             <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px auto; width: 50%;"></div>
             <p style="font-size: 10px; color: #64748b;">Mô hình: Random Forest Regressor</p>
         </div>
+        """, unsafe_allow_html=True)
+        st.balloons()
+    else:
+        st.error(f"Hệ thống báo lỗi: {ket_qua}")
         """, unsafe_allow_html=True)
         st.balloons()
     else:
