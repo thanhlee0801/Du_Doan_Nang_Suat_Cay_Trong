@@ -125,49 +125,45 @@ html_code = """
 # Hiển thị giao diện và nhận giá trị
 data_input = components.html(html_code, height=520)
 
-# --- 3. XỬ LÝ DỰ ĐOÁN ---
-if data_input:
+# --- 3. HÀM XỬ LÝ DỰ ĐOÁN (CÁCH LY KHỎI MAGIC) ---
+def thuc_hien_du_doan(raw_data):
     try:
-        # Bước 1: Cách ly dữ liệu khỏi Streamlit Magic
-        # Chúng ta biến data_input thành một Dictionary Python thuần túy
-        du_lieu = dict(data_input)
+        # Ép kiểu về dict thuần túy ngay lập tức
+        d = dict(raw_data)
+        
+        # TRUY CẬP TRỰC TIẾP bằng ngoặc vuông [], KHÔNG dùng .get() hay .keys()
+        # Streamlit Magic sẽ không chặn phép truy cập chỉ mục này
+        n = float(d['n'])
+        p = float(d['p'])
+        k = float(d['k'])
+        t = float(d['temp'])
+        r = float(d['rain'])
 
-        # Bước 2: TRUY CẬP TRỰC TIẾP bằng ngoặc vuông [], KHÔNG dùng .get() hay .keys()
-        # Nếu phím không tồn tại, Python sẽ báo lỗi KeyError (ta sẽ xử lý trong except)
-        val_n = float(du_lieu['n'])
-        val_p = float(du_lieu['p'])
-        val_k = float(du_lieu['k'])
-        val_t = float(du_lieu['temp'])
-        val_r = float(du_lieu['rain'])
+        # Tạo DataFrame (Lưu ý: Tên cột phải khớp 100% với lúc bạn Train Model)
+        df = pd.DataFrame([[n, p, k, t, r]], 
+                          columns=['N', 'P', 'K', 'temperature', 'rainfall'])
 
-        # Bước 3: Tạo DataFrame để đưa vào Model
-        # CHÚ Ý: Tên cột 'N', 'P', 'K', 'temperature', 'rainfall' phải khớp 100% với lúc bạn Train Model
-        df = pd.DataFrame([{
-            'N': val_n, 
-            'P': val_p, 
-            'K': val_k, 
-            'temperature': val_t, 
-            'rainfall': val_r
-        }])
-
-        if models:
-            # Dự đoán từ model Random Forest (rf)
-            ket_qua = models['rf'].predict(df)[0]
-            
-            # Bước 4: Hiển thị kết quả bằng HTML tối màu (Giao diện chuyên nghiệp)
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 35px; border-radius: 24px; color: white; text-align: center; margin-top: 20px; border: 1px solid #10b981;">
-                <p style="color: #10b981; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Phân tích thành công</p>
-                <h2 style="font-size: 36px; font-weight: 800; margin: 15px 0;">{ket_qua:.3f} <small style="font-size: 14px; color: #94a3b8; font-weight: 400;">tấn/ha</small></h2>
-                <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px auto; width: 50%;"></div>
-                <p style="font-size: 10px; color: #64748b;">Mô hình: Random Forest Regressor</p>
-            </div>
-            """, unsafe_allow_html=True)
-            st.balloons()
-        else:
-            st.error("⚠️ Không tìm thấy file mô hình (.pkl).")
-
-    except KeyError as e:
-        st.error(f"Thiếu thông tin đầu vào: {e}")
+        if models and 'rf' in models:
+            res = models['rf'].predict(df)[0]
+            return res
+        return None
     except Exception as e:
-        st.error(f"Lỗi hệ thống: {str(e)}")
+        return f"Lỗi: {str(e)}"
+
+# --- 4. HIỂN THỊ KẾT QUẢ ---
+if data_input:
+    ket_qua = thuc_hien_du_doan(data_input)
+    
+    if isinstance(ket_qua, float):
+        # Hiển thị giao diện kết quả tối màu (Dark UI)
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #064e3b 0%, #020617 100%); padding: 35px; border-radius: 24px; color: white; text-align: center; margin-top: 20px; border: 1px solid #10b981;">
+            <p style="color: #10b981; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Dự đoán thành công</p>
+            <h2 style="font-size: 36px; font-weight: 800; margin: 15px 0;">{ket_qua:.3f} <small style="font-size: 14px; color: #94a3b8; font-weight: 400;">tấn/ha</small></h2>
+            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 15px auto; width: 50%;"></div>
+            <p style="font-size: 10px; color: #64748b;">Mô hình: Random Forest Regressor</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.balloons()
+    else:
+        st.error(f"Hệ thống chưa thể phân tích: {ket_qua}")
